@@ -1,5 +1,6 @@
 # soc-agent/velociraptor.py
 # Velociraptor integration — dispatch hunts and collect endpoint telemetry
+# Uses docker exec to call the Velociraptor binary directly, bypassing gRPC TLS issues
 import os
 import json
 import asyncio
@@ -8,8 +9,12 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-VELO_API_CONFIG = os.getenv("VELOCIRAPTOR_API_CONFIG", "/app/velociraptor/api.config.yaml")
+VELO_CONTAINER = os.getenv("VELOCIRAPTOR_CONTAINER", "velociraptor")
+VELO_API_CONFIG = os.getenv("VELOCIRAPTOR_API_CONFIG", "/velociraptor-shared/api.config.yaml")
 VELO_ENABLED = os.getenv("VELOCIRAPTOR_ENABLED", "false").lower() == "true"
+VELO_BIN = "/velociraptor/velociraptor"
+# Inside the Velociraptor container, the shared volume is mounted at /shared
+VELO_CONTAINER_CONFIG = "/shared/api.config.yaml"
 
 # Artifacts to collect per investigation type
 HUNT_ARTIFACTS = {
@@ -46,122 +51,73 @@ def velo_available() -> bool:
     if not os.path.exists(VELO_API_CONFIG):
         logger.warning("Velociraptor API config not found at %s", VELO_API_CONFIG)
         return False
+    return True
+
+
+async def _velo_query(vql: str) -> list[dict]:
+    """Run a VQL query via docker exec into the Velociraptor container."""
+    cmd = [
+        "docker", "exec", VELO_CONTAINER,
+        VELO_BIN,
+        "--api_config", VELO_CONTAINER_CONFIG,
+        "query", vql,
+        "--format", "json",
+    ]
     try:
-        import pyvelociraptor
-        return True
-    except ImportError:
-        logger.warning("pyvelociraptor not installed")
-        return False
-
-
-def _get_stub():
-    """Get a gRPC stub for the Velociraptor API."""
-    import grpc
-    import pyvelociraptor.api_pb2_grpc as api_pb2_grpc
-
-    config = pyvelociraptor.LoadConfigFile(VELO_API_CONFIG)
-
-    # Build SSL credentials from the config certs
-    creds = grpc.ssl_channel_credentials(
-        root_certificates=config["ca_certificate"].encode("utf8"),
-        private_key=config["client_private_key"].encode("utf8"),
-        certificate_chain=config["client_cert"].encode("utf8"),
-    )
-
-    channel = grpc.secure_channel(
-        config["api_connection_string"],
-        creds,
-        options=[("grpc.ssl_target_name_override", "localhost")],
-    )
-    return api_pb2_grpc.APIStub(channel), config
-
-
-def _run_vql(stub, vql: str) -> list[dict]:
-    """Run a VQL query and return results."""
-    import pyvelociraptor.api_pb2 as api_pb2
-    results = []
-    request = api_pb2.VQLCollectorArgs(
-        max_wait=30,
-        Query=[api_pb2.VQLRequest(VQL=vql)],
-    )
-    for response in stub.Query(request):
-        if response.Response:
-            rows = json.loads(response.Response)
-            results.extend(rows)
-    return results
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
+        if proc.returncode != 0:
+            logger.error("Velociraptor query error: %s", stderr.decode())
+            return []
+        output = stdout.decode().strip()
+        if not output:
+            return []
+        return json.loads(output)
+    except asyncio.TimeoutError:
+        logger.error("Velociraptor query timed out")
+        return []
+    except Exception as e:
+        logger.error("Velociraptor query exception: %s", e)
+        return []
 
 
 async def find_client(hostname_or_ip: str) -> Optional[str]:
     """Find a Velociraptor client ID by hostname or IP."""
     if not velo_available():
         return None
-    try:
-        stub, _ = _get_stub()
-        # Search by hostname
-        vql = f"SELECT client_id FROM clients() WHERE os_info.hostname =~ '{hostname_or_ip}' OR last_ip =~ '{hostname_or_ip}' LIMIT 1"
-        results = await asyncio.to_thread(_run_vql, stub, vql)
-        if results:
-            return results[0].get("client_id")
-    except Exception as e:
-        logger.error("Velociraptor find_client error: %s", e)
+    vql = f"SELECT client_id FROM clients() WHERE os_info.hostname =~ '{hostname_or_ip}' OR last_ip =~ '{hostname_or_ip}' LIMIT 1"
+    results = await _velo_query(vql)
+    if results:
+        return results[0].get("client_id")
     return None
 
 
 async def collect_artifact(
     client_id: str,
     artifact: str,
-    parameters: dict = None,
     timeout: int = 120,
 ) -> list[dict]:
     """Dispatch a collection on a specific client and wait for results."""
     if not velo_available():
         return []
-    try:
-        stub, _ = _get_stub()
 
-        # Schedule collection
-        params_vql = ""
-        if parameters:
-            params_str = ", ".join(f'{k}="{v}"' for k, v in parameters.items())
-            params_vql = f", env=dict({params_str})"
-
-        schedule_vql = f"SELECT collect_client(client_id='{client_id}', artifacts=['{artifact}']{params_vql}).flow_id AS flow_id FROM scope()"
-        results = await asyncio.to_thread(_run_vql, stub, schedule_vql)
-        if not results:
-            return []
-
-        flow_id = results[0].get("flow_id")
-        if not flow_id:
-            return []
-
-        logger.info("Velociraptor flow %s started on %s for %s", flow_id, client_id, artifact)
-
-        # Poll for completion
-        deadline = asyncio.get_event_loop().time() + timeout
-        while asyncio.get_event_loop().time() < deadline:
-            status_vql = f"SELECT state FROM flows(client_id='{client_id}', flow_id='{flow_id}') LIMIT 1"
-            status = await asyncio.to_thread(_run_vql, stub, status_vql)
-            if status and status[0].get("state") in ("FINISHED", "ERROR"):
-                break
-            await asyncio.sleep(5)
-
-        # Pull results
-        results_vql = f"SELECT * FROM source(client_id='{client_id}', flow_id='{flow_id}', artifact='{artifact}')"
-        return await asyncio.to_thread(_run_vql, stub, results_vql)
-
-    except Exception as e:
-        logger.error("Velociraptor collect_artifact error: %s", e)
-        return []
+    # Schedule and wait for collection in one VQL
+    vql = (
+        f"LET flow = collect_client(client_id='{client_id}', artifacts=['{artifact}']) "
+        f"SELECT * FROM source(client_id='{client_id}', flow_id=flow.flow_id, artifact='{artifact}')"
+    )
+    return await _velo_query(vql)
 
 
 async def hunt_host(
     hostname_or_ip: str,
     alert_type: str = "default",
 ) -> dict:
-    """
-    High-level: find a host, dispatch relevant artifact collections,
-    return structured results for inclusion in an investigation report.
-    """
+    """Find a host, dispatch relevant artifact collections, return results."""
     if not velo_available():
         return {"available": False}
 
@@ -177,7 +133,6 @@ async def hunt_host(
         logger.info("Collecting %s from %s (%s)", artifact, hostname_or_ip, client_id)
         results = await collect_artifact(client_id, artifact)
         if results:
-            # Truncate to first 20 rows per artifact to keep report size manageable
             collected[artifact] = results[:20]
 
     return {
@@ -198,21 +153,14 @@ async def create_hunt(
     """Create a fleet-wide hunt and return the hunt ID."""
     if not velo_available():
         return None
-    try:
-        stub, _ = _get_stub()
-        params_vql = ""
-        if parameters:
-            params_str = ", ".join(f'{k}="{v}"' for k, v in parameters.items())
-            params_vql = f", env=dict({params_str})"
-
-        vql = f"SELECT hunt(description='{description}', artifacts=['{artifact}']{params_vql}).hunt_id AS hunt_id FROM scope()"
-        results = await asyncio.to_thread(_run_vql, stub, vql)
-        if results:
-            hunt_id = results[0].get("hunt_id")
+    vql = f"SELECT hunt(description='{description}', artifacts=['{artifact}']) AS H FROM scope()"
+    results = await _velo_query(vql)
+    if results:
+        h = results[0].get("H", {})
+        hunt_id = h.get("HuntId") or (h.get("Request") or {}).get("hunt_id")
+        if hunt_id:
             logger.info("Velociraptor hunt %s created for %s", hunt_id, artifact)
             return hunt_id
-    except Exception as e:
-        logger.error("Velociraptor create_hunt error: %s", e)
     return None
 
 
@@ -220,10 +168,5 @@ async def get_clients() -> list[dict]:
     """List all known Velociraptor clients."""
     if not velo_available():
         return []
-    try:
-        stub, _ = _get_stub()
-        vql = "SELECT client_id, os_info.hostname AS hostname, last_ip, os_info.system AS os FROM clients() LIMIT 100"
-        return await asyncio.to_thread(_run_vql, stub, vql)
-    except Exception as e:
-        logger.error("Velociraptor get_clients error: %s", e)
-        return []
+    vql = "SELECT client_id, os_info.hostname AS hostname, last_ip, os_info.system AS os FROM clients() LIMIT 100"
+    return await _velo_query(vql)

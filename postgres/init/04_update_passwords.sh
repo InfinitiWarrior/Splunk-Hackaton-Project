@@ -1,12 +1,15 @@
 #!/bin/bash
 # 04_update_passwords.sh
-# Runs after SQL init scripts — updates role passwords from environment variables
-
 set -e
-
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    ALTER ROLE auth_app WITH PASSWORD '${AUTH_APP_PASSWORD}';
-    ALTER ROLE audit_writer WITH PASSWORD '${AUDIT_WRITER_PASSWORD}';
-    ALTER ROLE audit_reader WITH PASSWORD '${AUDIT_READER_PASSWORD}';
-    SELECT 'Passwords updated' AS status;
-EOSQL
+python3 -c "
+import subprocess, os
+roles = {
+    'auth_app': os.environ['AUTH_APP_PASSWORD'],
+    'audit_writer': os.environ['AUDIT_WRITER_PASSWORD'],
+    'audit_reader': os.environ['AUDIT_READER_PASSWORD'],
+}
+for role, pw in roles.items():
+    sql = f\"ALTER ROLE {role} WITH PASSWORD '{pw.replace(chr(39), chr(39)+chr(39))}'\"
+    subprocess.run(['psql', '-U', os.environ['POSTGRES_USER'], '-d', os.environ['POSTGRES_DB'], '-c', sql], check=True)
+print('Passwords updated')
+"

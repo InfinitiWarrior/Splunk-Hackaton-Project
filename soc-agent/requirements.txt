@@ -8,5 +8,4 @@ python-dotenv
 sqlite-utils
 weasyprint
 pyyaml>=6.0
-pyvelociraptor
-grpcio
+cryptography

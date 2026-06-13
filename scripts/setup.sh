@@ -68,15 +68,7 @@ velociraptor-setup:
 		--name localhost \
 		--role administrator \
 		/shared/api.config.yaml
-	@echo "Creating admin user..."
-	@VELOX_PASS=$$(grep VELOX_PASSWORD .env | cut -d= -f2); \
-	VELOX_USER=$$(grep VELOX_USER .env | cut -d= -f2 | head -1); \
-	sudo docker exec velociraptor /velociraptor/velociraptor \
-		--config /velociraptor/server.config.yaml \
-		user add $${VELOX_USER:-admin} --role administrator --password "$${VELOX_PASS:-changeme123!}" 2>/dev/null || true
-	sudo docker restart velociraptor
-	sudo docker restart soc-agent
-	@echo "Velociraptor ready. GUI: https://localhost:8889"
+	@echo "API config written. Restart soc-agent: docker restart soc-agent"
 
 # ── Stop everything ───────────────────────────────────────────────────────
 down:

@@ -34,3 +34,10 @@ else
 fi
 
 echo "[velo-setup] Setup complete"
+# Create admin user
+echo "[velo-setup] Creating admin user..."
+docker exec velociraptor /velociraptor/velociraptor \
+  --config /velociraptor/server.config.yaml \
+  user add "${VELOX_USER:-admin}" --role administrator --password "${VELOX_PASSWORD:-changeme123!}" 2>/dev/null || true
+docker restart velociraptor
+echo "[velo-setup] Admin user created. GUI at https://localhost:8889"

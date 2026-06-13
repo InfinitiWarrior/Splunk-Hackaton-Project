@@ -51,7 +51,7 @@ CREATE INDEX idx_sessions_expires_at ON sessions (expires_at);
 -- Only one active session per user
 CREATE UNIQUE INDEX idx_sessions_one_per_user
     ON sessions (user_id)
-    WHERE invalidated_at IS NULL AND expires_at > NOW();
+    WHERE invalidated_at IS NULL;
 
 -- ── Action tokens (SAT) ───────────────────────────────────────
 CREATE TABLE action_tokens (

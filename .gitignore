@@ -1,4 +1,5 @@
 .env
+.env copy
 web-backend/target
 data/*.db
 data/*.sqlite

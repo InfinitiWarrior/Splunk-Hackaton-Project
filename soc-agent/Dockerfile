@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     shared-mime-info \
     curl \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install uv
 COPY requirements.txt .

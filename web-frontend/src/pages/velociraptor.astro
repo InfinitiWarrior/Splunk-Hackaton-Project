@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import VelociraptorPanel from '../components/VelociraptorPanel.tsx';
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+---
+<BaseLayout title="Velociraptor">
+  <VelociraptorPanel client:load apiUrl={apiUrl} />
+</BaseLayout>
