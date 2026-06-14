@@ -31,16 +31,16 @@ pub async fn create(
     let token_hash = crypto::hash_token(&token)
         .map_err(|e| anyhow::anyhow!("Token hashing failed: {}", e))?;
 
-    // Invalidate existing sessions
+    let ip_str = ip.to_string();
+    let mut tx = db.begin().await?;
+
     sqlx::query(
         "UPDATE sessions SET invalidated_at = NOW(), invalidation_reason = 'new_login'
-         WHERE user_id = $1 AND invalidated_at IS NULL AND expires_at > NOW()"
+         WHERE user_id = $1 AND invalidated_at IS NULL"
     )
     .bind(user_id)
-    .execute(db)
+    .execute(&mut *tx)
     .await?;
-
-    let ip_str = ip.to_string();
 
     sqlx::query(
         "INSERT INTO sessions (user_id, token_hash, ip, user_agent, device_fingerprint, auth_level)
@@ -51,8 +51,10 @@ pub async fn create(
     .bind(&ip_str)
     .bind(user_agent)
     .bind(fingerprint)
-    .execute(db)
+    .execute(&mut *tx)
     .await?;
+
+    tx.commit().await?;
 
     Ok(token)
 }
@@ -83,7 +85,6 @@ pub async fn validate(
             continue;
         }
         let stored_ip: String = row.get("ip");
-        // Strip CIDR suffix if present (postgres inet type returns "x.x.x.x/32")
         let stored_ip_clean = stored_ip.split('/').next().unwrap_or(&stored_ip);
         if stored_ip_clean != ip_str {
             tracing::warn!("Session IP mismatch: stored={}, request={}", stored_ip, ip_str);

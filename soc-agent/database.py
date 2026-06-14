@@ -70,6 +70,7 @@ def init_db():
     # Migrations — add columns that may not exist in older DBs
     for migration in [
         "ALTER TABLE cases ADD COLUMN verdict TEXT DEFAULT NULL",
+        "ALTER TABLE response_actions ADD COLUMN provider TEXT DEFAULT NULL",
     ]:
         try:
             conn.execute(migration)

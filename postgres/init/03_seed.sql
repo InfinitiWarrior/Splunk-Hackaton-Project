@@ -46,3 +46,4 @@ $$;
 GRANT CONNECT ON DATABASE soc_triage TO audit_reader;
 GRANT USAGE ON SCHEMA audit TO audit_reader;
 GRANT SELECT ON audit.log TO audit_reader;
+GRANT SELECT ON audit.log TO audit_writer;

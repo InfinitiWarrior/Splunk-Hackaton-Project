@@ -14,7 +14,7 @@ interface SearchResult {
 export default function NaturalLanguageSearch({ apiUrl }: Props) {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState("main");
-  const [earliest, setEarliest] = useState("-1h");
+  const [earliest, setEarliest] = useState("-30d");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);

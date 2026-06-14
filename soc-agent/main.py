@@ -911,8 +911,8 @@ async def entra_disable_user(body: dict):
         raise HTTPException(status_code=400, detail="user_id required")
     result = await disable_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("disable_user", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("disable_user", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "entra"))
     conn.commit(); conn.close()
     return result
 
@@ -926,8 +926,8 @@ async def entra_revoke_sessions(body: dict):
         raise HTTPException(status_code=400, detail="user_id required")
     result = await revoke_sessions(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("revoke_sessions", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("revoke_sessions", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "entra"))
     conn.commit(); conn.close()
     return result
 
@@ -941,17 +941,35 @@ async def entra_enable_user(body: dict):
         raise HTTPException(status_code=400, detail="user_id required")
     result = await enable_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("enable_user", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("enable_user", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "entra"))
     conn.commit(); conn.close()
     return result
 
 
+
+@app.get("/okta/actions")
+async def okta_action_log():
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT * FROM response_actions WHERE provider = 'okta' ORDER BY performed_at DESC LIMIT 100").fetchall()
+        return {"actions": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+@app.get("/auth0/actions")
+async def auth0_action_log():
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT * FROM response_actions WHERE provider = 'auth0' ORDER BY performed_at DESC LIMIT 100").fetchall()
+        return {"actions": [dict(r) for r in rows]}
+    finally:
+        conn.close()
 @app.get("/entra/actions")
 async def entra_action_log():
     conn = get_connection()
     try:
-        rows = conn.execute("SELECT * FROM response_actions ORDER BY performed_at DESC LIMIT 100").fetchall()
+        rows = conn.execute("SELECT * FROM response_actions WHERE provider = 'entra' ORDER BY performed_at DESC LIMIT 100").fetchall()
         return {"actions": [dict(r) for r in rows]}
     finally:
         conn.close()
@@ -1222,8 +1240,8 @@ async def okta_suspend(body: dict):
     if not user_id: raise HTTPException(status_code=400, detail="user_id required")
     result = await suspend_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("okta_suspend", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("okta_suspend", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "okta"))
     conn.commit(); conn.close()
     return result
 
@@ -1236,8 +1254,8 @@ async def okta_unsuspend(body: dict):
     if not user_id: raise HTTPException(status_code=400, detail="user_id required")
     result = await unsuspend_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("okta_unsuspend", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("okta_unsuspend", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "okta"))
     conn.commit(); conn.close()
     return result
 
@@ -1250,8 +1268,8 @@ async def okta_clear_sessions(body: dict):
     if not user_id: raise HTTPException(status_code=400, detail="user_id required")
     result = await clear_user_sessions(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("okta_clear_sessions", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("okta_clear_sessions", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "okta"))
     conn.commit(); conn.close()
     return result
 
@@ -1340,8 +1358,8 @@ async def auth0_block_user(body: dict):
     if not user_id: raise HTTPException(status_code=400, detail="user_id required")
     result = await block_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("auth0_block", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("auth0_block", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "auth0"))
     conn.commit(); conn.close()
     return result
 
@@ -1354,8 +1372,8 @@ async def auth0_unblock_user(body: dict):
     if not user_id: raise HTTPException(status_code=400, detail="user_id required")
     result = await unblock_user(user_id)
     conn = get_connection()
-    conn.execute("INSERT INTO response_actions (action, target, performed_at, details) VALUES (?,?,?,?)",
-        ("auth0_unblock", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result)))
+    conn.execute("INSERT INTO response_actions (action, target, performed_at, details, provider) VALUES (?,?,?,?,?)",
+        ("auth0_unblock", user_id, datetime.now(timezone.utc).isoformat(), json.dumps(result), "auth0"))
     conn.commit(); conn.close()
     return result
 
