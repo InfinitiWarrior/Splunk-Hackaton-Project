@@ -22,8 +22,8 @@ When an alert arrives (via webhook or manual submission), the investigation pipe
 Reports export as PDF or MITRE Navigator JSON layers.
 
 **Splunk deployment options:**
-- **External** — your existing Splunk Enterprise instance (KVM, bare metal, cloud)
-- **Containerized** — self-contained Splunk + MCP Server in Docker, pre-seeded with synthetic attack data. Zero setup. `make up-splunk` and you're running.
+- **Containerized** — self-contained Splunk + MCP Server in Docker, pre-seeded with synthetic attack data. Zero setup. `make up-splunk` and you are running.
+- **External** — your existing Splunk Enterprise instance (KVM, bare metal, cloud). Configure once and point TriagaSOAR at it.
 
 Switch between them at runtime with `make use-splunk-container` or `make use-splunk-external`.
 
@@ -39,7 +39,7 @@ Four starter playbooks ship with the repo covering credential stuffing, brute fo
 
 ### Velociraptor endpoint hunting
 
-When an investigation identifies suspicious hosts, TriagaSOAR automatically dispatches Velociraptor artifact collections against them. Artifacts are selected based on alert type — brute force, lateral movement, credential stuffing, privilege escalation each get a different artifact set. Results are included in the investigation report.
+When an investigation identifies suspicious hosts, TriagaSOAR automatically dispatches Velociraptor artifact collections against them. Artifacts are selected based on alert type: brute force, lateral movement, credential stuffing, and privilege escalation each get a different artifact set. Results are included in the investigation report.
 
 Velociraptor runs as an optional Docker container on the `velociraptor` profile. The GUI is available at `https://localhost:8889`.
 
@@ -57,7 +57,7 @@ Every destructive response action requires a Single-Action Token. 32-byte random
 
 ### Auth layer
 
-A Rust/Axum auth proxy sits in front of everything. Argon2id session hashing, IP+UA binding, hash-chained audit log in a separate Postgres schema with an INSERT-only role. Admin credentials loaded from Docker secrets — never in environment variables or `docker inspect`.
+A Rust/Axum auth proxy sits in front of everything. Argon2id session hashing, IP and user-agent binding, hash-chained audit log in a separate Postgres schema with an INSERT-only role. Admin credentials loaded from Docker secrets, never in environment variables or visible via `docker inspect`.
 
 ---
 
@@ -92,7 +92,7 @@ A Rust/Axum auth proxy sits in front of everything. Argon2id session hashing, IP
 - Docker + Docker Compose
 - nvidia-container-toolkit (local mode only)
 
-**Splunk** (external mode only — containerized mode has no prerequisites)
+**Splunk (external mode only — containerized mode has no prerequisites)**
 - Splunk Enterprise 10.x with MCP Server installed
 - Token authentication enabled, `mcp_user` role with `mcp_tool_execute` capability
 - Encrypted MCP token generated from the MCP Server app
@@ -101,42 +101,101 @@ A Rust/Axum auth proxy sits in front of everything. Argon2id session hashing, IP
 
 ## Quick start
 
-### 1. Clone and run setup wizard
+### 1. Clone
 
 ```bash
-git clone https://github.com/InfinitiWarrior/Splunk-Hackaton-Project
-cd Splunk-Hackaton-Project
+git clone https://github.com/TriagaSOAR/TriagaSOAR
+cd TriagaSOAR
+```
+
+### 2. Run the setup wizard
+
+```bash
 bash scripts/setup.sh
 ```
 
 The wizard walks through LLM mode, Splunk mode, database credentials, identity provider connections, Velociraptor, threat intelligence, and Teams notifications. It writes `.env` and generates `secrets/` automatically.
 
-### 2. Start
+### 3. Start the main stack
 
 ```bash
-# Local GPU mode
+# Local GPU mode (requires NVIDIA GPU, pulls Qwen3 14B + 1.7B automatically)
 make up
 
-# Cloud LLM mode (OpenAI / Anthropic)
+# Cloud LLM mode (OpenAI or Anthropic, set keys in .env)
 make up-cloud
 ```
 
-### 3. Start Splunk (containerized mode)
+### 4a. Containerized Splunk (zero setup, recommended for evaluation)
 
 ```bash
 make up-splunk
 ```
 
-This starts Splunk, waits for healthy, runs setup (generates MCP token, configures roles), and seeds synthetic attack data covering brute force, credential stuffing, and lateral movement scenarios.
+This starts Splunk Enterprise, waits for healthy (3-5 min), generates the MCP token, configures roles, and seeds three synthetic attack scenarios. No Splunk license required.
 
-### 4. Start Velociraptor (optional)
+Once complete, TriagaSOAR is fully connected. Open `http://localhost:4321` and log in.
+
+### 4b. External Splunk (your existing instance)
+
+If you already have Splunk Enterprise running, configure it first:
+
+1. Install the [Splunk MCP Server](https://splunkbase.splunk.com/app/7931) (app ID 7931)
+2. Enable token authentication: Settings > Tokens > Enable
+3. Create a role named exactly `mcp_user`: Settings > Access Controls > Roles > New Role
+4. Assign the `mcp_tool_execute` capability to `mcp_user`
+5. Assign `mcp_user` to your Splunk user
+6. Open the MCP Server app and generate a new encrypted token with Audience set to `mcp`
+7. Set these values in `.env`:
+
+```env
+SPLUNK_HOST=your-splunk-host
+SPLUNK_PORT=8089
+SPLUNK_TOKEN=your-encrypted-mcp-token
+SPLUNK_TOKEN_FILE=
+SPLUNK_VERIFY_SSL=false
+```
+
+8. Restart soc-agent to pick up the new token:
+
+```bash
+docker restart soc-agent
+```
+
+9. Verify the connection:
+
+```bash
+curl -s http://localhost:8000/splunk/health | python3 -m json.tool
+```
+
+You should see your Splunk version and index list.
+
+**Switching between containerized and external Splunk at runtime (no rebuild needed):**
+
+```bash
+# Switch to containerized Splunk
+make use-splunk-container
+
+# Switch to external Splunk (prompts for token)
+make use-splunk-external
+```
+
+### 5. Velociraptor (optional)
 
 ```bash
 make up-velociraptor
 make velociraptor-setup
 ```
 
-Open `http://localhost:4321`. Log in with the admin credentials you configured.
+The GUI is available at `https://localhost:8889`. Log in with the credentials you set for `VELOX_USER` and `VELOX_PASSWORD` in `.env`.
+
+### 6. Run a demo investigation
+
+```bash
+make demo
+```
+
+This resets the case database and triggers investigations against all three synthetic attack scenarios: brute force, credential stuffing, and lateral movement.
 
 ---
 
@@ -154,9 +213,9 @@ Open `http://localhost:4321`. Log in with the admin credentials you configured.
 | `make rebuild-cloud` | Rebuild and restart (cloud) |
 | `make splunk-setup` | Re-run Splunk setup (token + seed) |
 | `make splunk-token` | Print current MCP token |
-| `make velociraptor-setup` | Generate Velociraptor API config |
-| `make use-splunk-container` | Switch to containerized Splunk |
-| `make use-splunk-external` | Switch to external Splunk |
+| `make velociraptor-setup` | Generate Velociraptor API config + admin user |
+| `make use-splunk-container` | Switch to containerized Splunk at runtime |
+| `make use-splunk-external` | Switch to external Splunk at runtime |
 | `make pull-models` | Pull Ollama models |
 | `make logs` | Tail soc-agent logs |
 | `make demo` | Full demo run (reset DB + investigations) |
@@ -193,7 +252,7 @@ Open `http://localhost:4321`. Log in with the admin credentials you configured.
 │   │   ├── Dockerfile
 │   │   ├── scripts/setup.sh    # MCP token generation + role config
 │   │   ├── scripts/seed.sh     # Synthetic attack data seeding
-│   │   └── sample-data/        # auth.log + attack.log (gitignored)
+│   │   └── sample-data/        # auth.log + attack.log
 │   ├── velociraptor/           # Velociraptor API setup script
 │   ├── maester/                # PowerShell + Maester container
 │   └── scubagear/              # PowerShell + ScubaGear (Linux-patched)
@@ -234,9 +293,9 @@ The containerized Splunk ships pre-seeded with three attack scenarios:
 
 | Scenario | Source IP | Description |
 |----------|-----------|-------------|
-| Brute force | 185.220.101.47 | 50+ failed SSH attempts → successful login as `dave` → privilege escalation |
+| Brute force | 185.220.101.47 | 50+ failed SSH attempts, successful login as `dave`, privilege escalation |
 | Credential stuffing | 45.33.32.156 | 9 accounts attempted, 2 successful (alice, carol) |
-| Lateral movement | 10.0.1.99 | Internal pivot as `svc-deploy` → implant download → root SSH |
+| Lateral movement | 10.0.1.99 | Internal pivot as `svc-deploy`, implant download, root SSH |
 
 Run `make demo` to trigger investigations against all three.
 
