@@ -1,0 +1,227 @@
+{
+  "safe_spl_commands": [
+    "search",
+    "where",
+    "regex",
+    "rex",
+    "eval",
+    "fields",
+    "rename",
+    "sort",
+    "dedup",
+    "highlight",
+    "replace",
+    "fieldformat",
+    "spath",
+    "match",
+    "reverse",
+    "head",
+    "tail",
+    "makemv",
+    "mvexpand",
+    "mvcombine",
+    "nomv",
+    "foreach",
+    "convert",
+    "strcat",
+    "addinfo",
+    "addtotals",
+    "addcoltotals",
+    "delta",
+    "accum",
+    "filldown",
+    "fillnull",
+    "bin",
+    "bucket",
+    "bucketdir",
+    "reltime",
+    "typeahead",
+    "typelearner",
+    "stats",
+    "eventstats",
+    "streamstats",
+    "tstats",
+    "chart",
+    "timechart",
+    "top",
+    "rare",
+    "gauge",
+    "contingency",
+    "counttable",
+    "ctable",
+    "anomalies",
+    "anomalousvalue",
+    "trendline",
+    "predict",
+    "outlier",
+    "autoreg",
+    "autoregress",
+    "kmeans",
+    "sistats",
+    "sichart",
+    "sirare",
+    "sitimechart",
+    "sitop",
+    "table",
+    "xyseries",
+    "transpose",
+    "untable",
+    "geom",
+    "geomfilter",
+    "geostats",
+    "rangemap",
+    "iconify",
+    "walklex",
+    "lookup",
+    "inputlookup",
+    "inputcsv",
+    "join",
+    "selfjoin",
+    "set",
+    "setfields",
+    "append",
+    "appendcols",
+    "appendpipe",
+    "union",
+    "makeresults",
+    "gentimes",
+    "from",
+    "fromjson",
+    "tojson",
+    "localop",
+    "noop",
+    "history",
+    "savedsearch",
+    "localize",
+    "searchtxn",
+    "transaction",
+    "msearch",
+    "multisearch",
+    "mstats",
+    "mcatalog",
+    "datamodel",
+    "datamodelsimple",
+    "pivot",
+    "loadjob",
+    "metadata",
+    "metasearch",
+    "dbinspect",
+    "eventcount",
+    "tags",
+    "typer",
+    "associate",
+    "arules",
+    "correlate",
+    "findtypes",
+    "cofilter",
+    "xmlkv",
+    "xpath",
+    "xmlunescape",
+    "kvform",
+    "extract",
+    "erex",
+    "format",
+    "collapse",
+    "redistribute",
+    "makecontinuous",
+    "folderize",
+    "require",
+    "scrub",
+    "x11",
+    "prjob",
+    "fieldsummary",
+    "analyzefields",
+    "findkeywords",
+    "rtorder",
+    "fit",
+    "apply",
+    "summary",
+    "listmodels",
+    "sample",
+    "score",
+    "getservice",
+    "ai",
+    "anomalydetection",
+    "iplocation"
+  ],
+  "exclude_tools": [
+    "splunk_get_info",
+    "splunk_get_indexes",
+    "splunk_get_index_info",
+    "splunk_get_user_list",
+    "splunk_get_user_info",
+    "splunk_get_metadata",
+    "splunk_get_kv_store_collections",
+    "splunk_get_knowledge_objects",
+    "splunk_run_saved_search",
+    "saia_generate_spl",
+    "saia_explain_spl",
+    "saia_ask_splunk_question",
+    "saia_optimize_spl"
+  ],
+  "sub_search_arg_cmd": {
+    "join": [
+      "args"
+    ],
+    "append": [
+      "args"
+    ],
+    "appendcols": [
+      "args"
+    ],
+    "set": [
+      "args"
+    ],
+    "setdiff": [
+      "args"
+    ],
+    "setinter": [
+      "args"
+    ],
+    "setunion": [
+      "args"
+    ],
+    "map": [
+      "search"
+    ],
+    "lookup": [
+      "inputlookup"
+    ],
+    "inputlookup": [
+      "inputlookup"
+    ],
+    "inputcsv": [
+      "inputcsv"
+    ],
+    "sendemail": [
+      "search"
+    ],
+    "return": [
+      "args"
+    ],
+    "selfjoin": [
+      "args"
+    ],
+    "transaction": [
+      "search"
+    ],
+    "metadata": [
+      "search"
+    ],
+    "tstats": [
+      "by"
+    ],
+    "eventstats": [
+      "search"
+    ],
+    "stats": [
+      "search"
+    ],
+    "streamstats": [
+      "search"
+    ],
+    "fields": [
+      "search"
+    ]
+  }
+}

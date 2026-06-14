@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>Webpack App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="shortcut icon" href="${make_url('/static/img/favicon.ico', appendcachebust=true)}" />
+  </head>
+  <body>
+    <script src="${make_url('/config?autoload=1', appendcachebust=true)}" crossorigin="use-credentials" ></script>
+    <script src="${make_url('/static/js/i18n.js', appendcachebust=true)}"></script>
+    <script src="${make_url('/i18ncatalog?autoload=1', appendcachebust=true)}"></script>
+    <script>
+      __splunkd_partials__ = ${json_decode(splunkd)};
+    </script>
+
+    <script src="${make_url('/static/app/Splunk_MCP_Server/js/runtime.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/vendors-node_modules_emotion_is-prop-valid_dist_emotion-is-prop-valid_esm_js-node_modules_emo-397b22.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/vendors-node_modules_lodash_castArray_js-node_modules_lodash_clamp_js-node_modules_lodash_def-976947.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/vendors-node_modules_querystring_index_js-node_modules_react-event-listener_dist_react-event--7d2eb6.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/vendors-node_modules_splunk_react-icons_Pencil_js-node_modules_splunk_react-page_lib_index_js-c016e5.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/vendors-node_modules_splunk_react-icons_SquaresLayered_js-node_modules_splunk_react-ui_JSONTree_js.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/src_shared_EditRateLimitModal_jsx.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script><script src="${make_url('/static/app/Splunk_MCP_Server/js/app.fbe02abd1bd6dba01146.js', appendcachebust=true)}"></script>
+  </body>
+</html>

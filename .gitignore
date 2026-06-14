@@ -8,5 +8,4 @@ data/scubagear/*
 
 integrations/scubagear/certs/*
 secrets/
-integrations/splunk/apps/
 integrations/splunk/sample-data/

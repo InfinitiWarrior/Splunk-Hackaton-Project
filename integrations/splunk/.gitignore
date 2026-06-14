@@ -1,0 +1,12 @@
+integrations/splunk/apps/Splunk_MCP_Server/local/
+integrations/splunk/apps/Splunk_MCP_Server/bin/__pycache__/
+integrations/splunk/apps/Splunk_MCP_Server/bin/lib/__pycache__/
+apps/Splunk_MCP_Server/local/
+apps/Splunk_MCP_Server/metadata/local.meta
+apps/Splunk_MCP_Server/bin/__pycache__/
+apps/Splunk_MCP_Server/bin/lib/__pycache__/
+apps/Splunk_MCP_Server/bin/rsa/__pycache__/
+apps/Splunk_MCP_Server/bin/splunklib/__pycache__/
+apps/Splunk_MCP_Server/bin/util/__pycache__/
+**/__pycache__/
+**/*.pyc

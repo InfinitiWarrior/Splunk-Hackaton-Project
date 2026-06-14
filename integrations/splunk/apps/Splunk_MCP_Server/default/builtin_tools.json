@@ -1,0 +1,912 @@
+{
+  "name": "Splunk Default Tools",
+  "description": "Default tool collection for Splunk MCP Server",
+  "version": "1.1.3",
+  "author": "Splunk MCP Team",
+  "tools": [
+    {
+      "_key": "splunk_mcp_app_builtin:get_info",
+      "name": "get_info",
+      "title": "get_info",
+      "description": "Get comprehensive information about the Splunk instance. Retrieves system information including version, hardware specs, and operational status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "system",
+          "info",
+          "monitoring",
+          "health"
+        ],
+        "examples": [
+          {
+            "name": "Get Splunk Instance Info",
+            "description": "Retrieve comprehensive information about the Splunk instance",
+            "arguments": {},
+            "expected_use": "System monitoring and health checks"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest /services/server/info | fields version, build, serverName, os_name, cpu_arch, numberOfCores, physicalMemoryMB, licenseState, kvStoreStatus, server_roles, health_info",
+          "row_limiter": false,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_indexes",
+      "name": "get_indexes",
+      "title": "get_indexes",
+      "description": "Get a list of indexes from Splunk. Indexes are data repositories where machine data is stored and organized.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "indexes",
+          "system",
+          "configuration",
+          "discovery"
+        ],
+        "examples": [
+          {
+            "name": "List All Indexes",
+            "description": "Retrieve information about all available indexes",
+            "arguments": {},
+            "expected_use": "Index discovery and configuration review"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest /services/data/indexes count=0 | fields title, disabled, currentDBSizeMB, totalEventCount, splunk_server",
+          "row_limiter": true,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_index_info",
+      "name": "get_index_info",
+      "title": "get_index_info",
+      "description": "Get detailed information about a specific Splunk index. Returns comprehensive configuration and status information for the specified index.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "index_name": {
+            "type": "string",
+            "description": "Name of the index to get information about",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "validation_message": "Index name can only contain alphanumeric characters, underscores (_), and hyphens (-)",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          }
+        },
+        "required": [
+          "index_name"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "indexes",
+          "system",
+          "configuration",
+          "details"
+        ],
+        "examples": [
+          {
+            "name": "Get Main Index Info",
+            "description": "Retrieve detailed information about the main index",
+            "arguments": {
+              "index_name": "main"
+            },
+            "expected_use": "Index configuration review and troubleshooting"
+          },
+          {
+            "name": "Get Custom Index Info",
+            "description": "Retrieve information about a custom index",
+            "arguments": {
+              "index_name": "myapp"
+            },
+            "expected_use": "Custom index monitoring and configuration"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest /services/data/indexes count=0 | search title=$index_name$ | fields title, disabled, currentDBSizeMB, totalEventCount, homePath, coldPath, thawedPath, maxDataSize, maxHotBuckets, maxWarmDBCount, datatype, frozenTimePeriodInSecs, maxTotalDataSizeMB, bucketRebuildMemoryHint, splunk_server",
+          "row_limiter": false,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_user_list",
+      "name": "get_user_list",
+      "title": "get_user_list",
+      "description": "Get a list of users from Splunk. Retrieves information about all users including authentication details, roles, and account status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "users",
+          "authentication",
+          "security",
+          "administration"
+        ],
+        "examples": [
+          {
+            "name": "Get All Users",
+            "description": "Retrieve information about all users in the Splunk instance",
+            "arguments": {},
+            "expected_use": "User management, security audits, and access reviews"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest splunk_server=local /services/authentication/users count=0 | eval locked_out = if('locked-out'=\"1\",\"true\",\"false\"), capabilities_count = mvcount(capabilities), last_successful_loginIso = if(isnull(last_successful_login) OR last_successful_login='', 'Never', strftime(last_successful_login, \"%Y-%m-%dT%H:%M:%SZ\")) | fields title, realname, email, roles, defaultApp, capabilities_count, locked_out, last_successful_login, last_successful_loginIso, type | rename title as username",
+          "row_limiter": true,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_user_info",
+      "name": "get_user_info",
+      "title": "get_user_info",
+      "description": "Retrieves detailed information about the currently authenticated user including roles and permissions. Returns comprehensive user profile data for the current session.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "user",
+          "authentication",
+          "security",
+          "profile",
+          "current-user"
+        ],
+        "examples": [
+          {
+            "name": "Get Current User Info",
+            "description": "Retrieve detailed information about the currently authenticated user",
+            "arguments": {},
+            "expected_use": "User profile verification, permission checking, and security context validation"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest splunk_server=local /services/authentication/current-context | eval locked_out = if('locked-out'=\"1\" OR 'locked-out'=\"true\", \"true\", \"false\"), capabilitiesCount = mvcount(capabilities), last_successful_loginIso = if(isnull(last_successful_login) OR last_successful_login=\"\", \"Never\", strftime(last_successful_login, \"%Y-%m-%dT%H:%M:%SZ\")) | fields username, realname, email, roles, defaultApp, capabilitiesCount, locked_out, last_successful_login, last_successful_loginIso, type",
+          "row_limiter": false,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:run_query",
+      "name": "run_query",
+      "title": "run_query",
+      "description": "Execute a Splunk search query and return the results. This is the primary tool for running Splunk searches using SPL (Search Processing Language). Use this to retrieve log data, perform aggregations, analyze events, and extract insights from your Splunk environment.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Valid SPL query to execute",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "SPL query is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": false } }
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "search",
+          "query",
+          "spl",
+          "ad-hoc"
+        ],
+        "examples": [
+          {
+            "name": "Simple Error Search",
+            "description": "Find error events in main index over last 24h",
+            "arguments": {
+              "query": "search index=main error | stats count by host"
+            },
+            "expected_use": "Ad-hoc troubleshooting and exploration"
+          },
+          {
+            "name": "Indexed Data Volume",
+            "description": "Get event counts per index in last hour",
+            "arguments": {
+              "query": "| tstats count where index=* earliest=-1h latest=now by index"
+            },
+            "expected_use": "Monitoring volume distribution"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "$query$",
+          "row_limiter": true,
+          "time_range": true
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_metadata",
+      "name": "get_metadata",
+      "title": "get_metadata",
+      "description": "Retrieve metadata about hosts, sources, or sourcetypes across one or more indexes in the selected time window.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Metadata category to list (hosts, sources, or sourcetypes).",
+            "enum": [
+              "hosts",
+              "sources",
+              "sourcetypes"
+            ]
+          },
+          "index": {
+            "type": "string",
+            "description": "Index name or wildcard pattern (e.g. main, app_*, *).",
+            "default": "*",
+            "pattern": "^[A-Za-z0-9_*-]+$",
+            "validation_message": "Index pattern may contain letters, numbers, underscore, dash, and * wildcard",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "metadata",
+          "inventory",
+          "discovery"
+        ],
+        "examples": [
+          {
+            "name": "Hosts In Main",
+            "description": "List hosts present in main index",
+            "arguments": {
+              "metadata_type": "hosts",
+              "index": "main"
+            },
+            "expected_use": "Inventory / topology mapping"
+          },
+          {
+            "name": "Sourcetypes All Indexes",
+            "description": "List sourcetypes across all indexes (limited)",
+            "arguments": {
+              "metadata_type": "sourcetypes",
+              "index": "*",
+              "row_limit": 50
+            },
+            "expected_use": "Discover available sourcetypes"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| metadata type=$type$ index=$index$ | eval firstTimeIso = if(isnull(firstTime) OR firstTime='', 'Never', strftime(firstTime, \"%Y-%m-%dT%H:%M:%SZ\")), lastTimeIso = if(isnull(lastTime) OR lastTime='', 'Never', strftime(lastTime, \"%Y-%m-%dT%H:%M:%SZ\")), recentTimeIso = if(isnull(recentTime) OR recentTime='', 'Never', strftime(recentTime, \"%Y-%m-%dT%H:%M:%SZ\"))",
+          "row_limiter": true,
+          "time_range": true
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_kv_store_collections",
+      "name": "get_kv_store_collections",
+      "title": "get_kv_store_collections",
+      "description": "Get KV Store collection statistics including size, count, and storage information. Retrieves comprehensive metrics about all KV Store collections in the Splunk instance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "kvstore",
+          "collections",
+          "system",
+          "storage",
+          "statistics"
+        ],
+        "examples": [
+          {
+            "name": "Get All KV Store Collections",
+            "description": "Retrieve statistics for all KV Store collections",
+            "arguments": {},
+            "expected_use": "KV Store monitoring, capacity planning, and performance analysis"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| rest /services/server/introspection/kvstore/collectionstats | mvexpand data | spath input=data\n| rex field=ns \"^[^.]+\\.(?<collection>.+)$\"\n| eval storageSize = coalesce(storageSize, size + totalIndexSize)\n| eval storageSizeStr = case(\n    isnull(storageSize), \"0 B\",\n    storageSize < 1024, storageSize . \" B\",\n    storageSize < 1024*1024, round(storageSize/1024, 2) . \" KiB\",\n    storageSize < 1024*1024*1024, round(storageSize/1024/1024, 2) . \" MiB\",\n    storageSize < 1024*1024*1024*1024, round(storageSize/1024/1024/1024, 2) . \" GiB\",\n    true(), round(storageSize/1024/1024/1024/1024, 2) . \" TiB\"\n)\n| table collection size count storageSize storageSizeStr\n| sort collection\n",
+          "row_limiter": true,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:get_knowledge_objects",
+      "name": "get_knowledge_objects",
+      "title": "get_knowledge_objects",
+      "description": "Retrieve Splunk knowledge objects by type. Supports various knowledge object types including saved searches, alerts, field extractions, lookups, macros, data models, and more.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of knowledge object to retrieve",
+            "enum": {
+              "saved_searches": "| rest /servicesNS/-/-/saved/searches count=0 | eval name=coalesce(name,title), app='eai:acl.app' | fields name app search cron_schedule disabled dispatch.earliest_time dispatch.latest_time",
+              "alerts": "| rest \"/services/saved/searches?search=alert_type%3D*\" count=0 | eval name=coalesce(name,title) | fields name search alert_type actions cron_schedule disabled",
+              "field_extractions": "| rest /services/data/props/extractions count=0 | eval name=coalesce(name, title) | fields name type attribute stanza disabled description owner sharing app ",
+              "field_aliases": "| rest /services/data/props/fieldaliases count=0 | eval name=coalesce(name,title), source_key=stanza | fields name source_key alias_fields",
+              "calculated_fields": "| rest /services/data/props/calcfields count=0 | eval name=coalesce(name,title), sourcetype=stanza, eval_expression=eval, field_name=field_name | fields name sourcetype eval_expression field_name",
+              "lookups": "| rest /services/data/lookup-table-files count=0 | eval name=coalesce(name,title), app=\"eai:appName\" | fields name app filename",
+              "automatic_lookups": "| rest /services/data/props/lookups count=0 | eval name=coalesce(name,title), sourcetype=stanza | fields name sourcetype lookup_table fields_list",
+              "lookup_transforms": "| rest /services/data/transforms/lookups count=0 | eval name=coalesce(name,title) | fields name external_type filename fields_list",
+              "macros": "| rest /services/data/macros count=0 | eval name=coalesce(name,title) | rename args AS arguments | fields name definition arguments",
+              "tags": "| rest /services/search/tags count=0 | eval tag_name=coalesce(name,title) | fields tag_name canonical_name tag_name_aliases",
+              "data_models": "| rest /services/datamodel/model count=0 | eval name=coalesce(name, title) | fields name eai:acl.app eai:acl.owner eai:acl.sharing acceleration disabled",
+              "workflow_actions": "| rest /services/data/ui/workflow-actions count=0 | eval name=coalesce(name,title) | fields name label uri fields type",
+              "views": "| rest /services/data/ui/views count=0 | eval name=coalesce(name,title), is_dashboard=isDashboard | fields name label is_dashboard",
+              "panels": "| rest /services/data/ui/panels count=0 | eval name=coalesce(name, title) | fields name eai:acl.app eai:acl.owner eai:acl.sharing definition",
+              "apps": "| rest splunk_server=local /services/apps/local count=0 | eval name=coalesce(name,title), visible=coalesce(visible,true()), enabled=if(disabled=\"0\",\"true\",\"false\") | fields name version author description enabled visible",
+              "mltk_algorithms": "| rest /servicesNS/nobody/Splunk_ML_Toolkit/configs/conf-algos/ count=0 | eval name=coalesce(name,title) | fields name",
+              "mltk_models": "| rest /servicesNS/nobody/Splunk_ML_Toolkit/mltk/list_models count=0 | eval name=coalesce('mlspl:model_info.model_name', name) | eval target_variable=coalesce('mlspl:model_info.target_variable', target_variable) | eval feature_variables=coalesce('mlspl:model_info.feature_variables', feature_variables) | table name algo_name target_variable feature_variables  author owner app disabled updated model_file"
+            }
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "knowledge",
+          "objects",
+          "configuration",
+          "management",
+          "discovery"
+        ],
+        "examples": [
+          {
+            "name": "Get Saved Searches",
+            "description": "Retrieve all saved searches in the Splunk instance",
+            "arguments": {
+              "type": "saved_searches"
+            },
+            "expected_use": "Configuration management and saved search inventory"
+          },
+          {
+            "name": "Get Alerts",
+            "description": "Retrieve all alerts configured in the Splunk instance",
+            "arguments": {
+              "type": "alerts"
+            },
+            "expected_use": "Alert management and monitoring configuration review"
+          },
+          {
+            "name": "Get Lookup Tables",
+            "description": "Retrieve all lookup table files",
+            "arguments": {
+              "type": "lookups"
+            },
+            "expected_use": "Lookup table management and inventory"
+          },
+          {
+            "name": "Get Data Models",
+            "description": "Retrieve all data models in the Splunk instance",
+            "arguments": {
+              "type": "data_models"
+            },
+            "expected_use": "Data model inventory and acceleration status review"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "$type$",
+          "row_limiter": true,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:generate_spl",
+      "name": "generate_spl",
+      "title": "generate_spl",
+      "description": "Generate SPL from natural language queries using Splunk AI Assistant.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural language query for generating SPL",
+            "pattern": "^[\\s\\S]{1,1000}$",
+            "validation_message": "Prompt is required and limited to 1000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "chat_history": {
+            "type": "string",
+            "description": "Chat history for context",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "Chat history is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "additional_context": {
+            "type": "string",
+            "description": "Additional context to include in generated SPL",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "spl_only": {
+            "type": "boolean",
+            "description": "If set to true, returns only generated SPL with no additional explanation",
+            "default": false
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "Splunk AI Assistant for SPL",
+        "name_prefix": "saia",
+        "tags": [
+          "ai",
+          "spl",
+          "generation",
+          "natural-language",
+          "assistant"
+        ],
+        "examples": [
+          {
+            "name": "Generate Top Users Query",
+            "description": "Generate SPL to find most active users",
+            "arguments": {
+              "prompt": "show me the top 5 users by activity",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We need SPL to list the top 5 most active users today.\"}]}",
+              "additional_context": "{\"fields\":[\"user_id\",\"activity_count\"],\"time_range\":\"last_24h\"}",
+              "spl_only": true
+            },
+            "expected_use": "Generate clean SPL without explanations"
+          },
+          {
+            "name": "Generate Performance Query",
+            "description": "Generate SPL for performance analysis",
+            "arguments": {
+              "prompt": "find slow queries that took more than 5 seconds",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Prior chats were about identifying slow searches in prod.\"}]}",
+              "additional_context": "{\"include_fields\":[\"host\",\"search_type\"],\"threshold_ms\":5000}",
+              "spl_only": false
+            },
+            "expected_use": "AI-assisted performance troubleshooting"
+          }
+        ],
+        "execution": {
+          "type": "api",
+          "method": "POST",
+          "endpoint": "/servicesNS/-/Splunk_AI_Assistant_Cloud/generatespl",
+          "headers": {
+            "Content-Type": "application/json",
+            "source-app-id": "mcp"
+          },
+          "body": {
+            "prompt": "$prompt$",
+            "chat_history": "$chat_history$",
+            "additional_context": "$additional_context$",
+            "spl_only": "$spl_only$"
+          }
+        },
+        "required_app": "Splunk_AI_Assistant_Cloud"
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:explain_spl",
+      "name": "explain_spl",
+      "title": "explain_spl",
+      "description": "Explain SPL queries in natural language using Splunk AI Assistant. Converts complex SPL commands into human-readable explanations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "spl": {
+            "type": "string",
+            "description": "SPL query to explain in natural language",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "SPL query is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "chat_history": {
+            "type": "string",
+            "description": "Chat history for context",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "Chat history is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "additional_context": {
+            "type": "string",
+            "description": "Additional context to include in generated SPL",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          }
+        },
+        "required": [
+          "spl"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "Splunk AI Assistant for SPL",
+        "name_prefix": "saia",
+        "tags": [
+          "ai",
+          "spl",
+          "explanation",
+          "natural-language",
+          "assistant",
+          "documentation"
+        ],
+        "examples": [
+          {
+            "name": "Explain Error Search",
+            "description": "Get natural language explanation for an error search query",
+            "arguments": {
+              "spl": "search index=main error | stats count by host",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We ran an error search and want to document it.\"}]}",
+              "additional_context": "{\"intent\":\"documentation\",\"audience\":\"new_oncall\"}"
+            },
+            "expected_use": "Understanding complex SPL queries and documenting search logic"
+          },
+          {
+            "name": "Explain Stats Query",
+            "description": "Explain a statistical aggregation query",
+            "arguments": {
+              "spl": "index=web | stats avg(response_time) max(response_time) by status_code",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Earlier we discussed summarizing web response times.\"}]}",
+              "additional_context": "{\"dataset\":\"web\",\"metrics\":[\"avg\",\"max\"],\"dimension\":\"status_code\"}"
+            },
+            "expected_use": "Understanding performance analysis queries"
+          },
+          {
+            "name": "Explain Complex Pipeline",
+            "description": "Get explanation for multi-stage SPL pipeline",
+            "arguments": {
+              "spl": "| tstats count where index=* by index | eval size_mb=round(count/1024/1024,2) | sort -size_mb",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We asked for help explaining a multi-stage tstats pipeline.\"}]}",
+              "additional_context": "{\"goal\":\"inventory_usage\",\"units\":\"MB\"}"
+            },
+            "expected_use": "Documentation and knowledge transfer for complex searches"
+          }
+        ],
+        "execution": {
+          "type": "api",
+          "method": "POST",
+          "endpoint": "/servicesNS/-/Splunk_AI_Assistant_Cloud/explainspl",
+          "headers": {
+            "Content-Type": "application/json",
+            "source-app-id": "mcp"
+          },
+          "body": {
+            "spl": "$spl$",
+            "chat_history": "$chat_history$",
+            "additional_context": "$additional_context$"
+          }
+        },
+        "required_app": "Splunk_AI_Assistant_Cloud"
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:ask_splunk_question",
+      "name": "ask_splunk_question",
+      "title": "ask_splunk_question",
+      "description": "Ask natural language questions about Splunk using Splunk AI Assistant. Get explanations about Splunk commands, concepts, features, and best practices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural language question about Splunk",
+            "pattern": "^[\\s\\S]{1,1000}$",
+            "validation_message": "Prompt is required and limited to 1000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "chat_history": {
+            "type": "string",
+            "description": "Chat history for context",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "Chat history is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "additional_context": {
+            "type": "string",
+            "description": "Additional context to include in generated SPL",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "Splunk AI Assistant for SPL",
+        "name_prefix": "saia",
+        "tags": [
+          "ai",
+          "questions",
+          "help",
+          "natural-language",
+          "assistant",
+          "documentation",
+          "learning"
+        ],
+        "examples": [
+          {
+            "name": "Ask About Splunk Commands",
+            "description": "Get information about specific Splunk commands",
+            "arguments": {
+              "prompt": "What does the inputlookup command do?",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We were reviewing lookup commands earlier.\"}]}",
+              "additional_context": "{\"interest\":\"search_commands\",\"experience\":\"beginner\"}"
+            },
+            "expected_use": "Learning Splunk commands and their functionality"
+          },
+          {
+            "name": "Ask About Data Models",
+            "description": "Get explanations about Splunk concepts",
+            "arguments": {
+              "prompt": "How do data models work in Splunk?",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We previously discussed data model accelerations.\"}]}",
+              "additional_context": "{\"topic\":\"data_models\",\"focus\":\"accelerations\"}"
+            },
+            "expected_use": "Understanding Splunk concepts and features"
+          },
+          {
+            "name": "Ask About Best Practices",
+            "description": "Get guidance on Splunk best practices",
+            "arguments": {
+              "prompt": "What are the best practices for indexing in Splunk?",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We were talking about indexing performance limits.\"}]}",
+              "additional_context": "{\"area\":\"indexing\",\"concerns\":[\"performance\",\"storage\"]}"
+            },
+            "expected_use": "Learning Splunk administration and optimization techniques"
+          },
+          {
+            "name": "Ask About Troubleshooting",
+            "description": "Get help with common Splunk issues",
+            "arguments": {
+              "prompt": "How do I troubleshoot slow search performance?",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We are experiencing slow searches in production.\"}]}",
+              "additional_context": "{\"symptom\":\"slow_search\",\"environment\":\"prod\"}"
+            },
+            "expected_use": "Problem-solving and troubleshooting guidance"
+          }
+        ],
+        "execution": {
+          "type": "api",
+          "method": "POST",
+          "endpoint": "/servicesNS/-/Splunk_AI_Assistant_Cloud/tellme",
+          "headers": {
+            "Content-Type": "application/json",
+            "source-app-id": "mcp"
+          },
+          "body": {
+            "prompt": "$prompt$",
+            "chat_history": "$chat_history$",
+            "additional_context": "$additional_context$"
+          }
+        },
+        "required_app": "Splunk_AI_Assistant_Cloud"
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:optimize_spl",
+      "name": "optimize_spl",
+      "title": "optimize_spl",
+      "description": "Optimize SPL (Search Processing Language) queries using Splunk AI Assistant. Improves query performance, efficiency, and follows best practices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "spl": {
+            "type": "string",
+            "description": "SPL query to optimize for better performance",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "SPL query is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "chat_history": {
+            "type": "string",
+            "description": "Chat history for context",
+            "pattern": "^[\\s\\S]{1,5000}$",
+            "validation_message": "Chat history is required and limited to 5000 characters",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "additional_context": {
+            "type": "string",
+            "description": "Additional context to include in generated SPL",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          }
+        },
+        "required": [
+          "spl"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "Splunk AI Assistant for SPL",
+        "name_prefix": "saia",
+        "tags": [
+          "ai",
+          "spl",
+          "optimization",
+          "performance",
+          "assistant",
+          "best-practices"
+        ],
+        "examples": [
+          {
+            "name": "Optimize Basic Search",
+            "description": "Optimize a basic search query for better performance",
+            "arguments": {
+              "spl": "search index=* | stats count by host",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We previously asked about speeding up a simple host count search.\"}]}",
+              "additional_context": "{\"goal\":\"reduce_latency\",\"expected_records\":\"millions\"}"
+            },
+            "expected_use": "Improving search performance and efficiency"
+          },
+          {
+            "name": "Optimize Complex Query",
+            "description": "Optimize a complex multi-stage query",
+            "arguments": {
+              "spl": "index=web | eval response_time_ms=response_time*1000 | where response_time_ms > 5000 | stats avg(response_time_ms) by status_code",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We discussed tuning a slow web response query.\"}]}",
+              "additional_context": "{\"perf_threshold_ms\":5000,\"dimensions\":[\"status_code\"],\"need\":\"tuning\"}"
+            },
+            "expected_use": "Performance tuning for complex analytical queries"
+          },
+          {
+            "name": "Optimize Join Query",
+            "description": "Optimize queries with joins or subsearches",
+            "arguments": {
+              "spl": "index=access | join host [search index=inventory | fields host, server_type] | stats count by server_type",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Earlier we asked about slow join performance on host field.\"}]}",
+              "additional_context": "{\"concern\":\"join_efficiency\",\"join_key\":\"host\"}"
+            },
+            "expected_use": "Optimizing resource-intensive operations like joins"
+          },
+          {
+            "name": "Optimize Large Dataset Query",
+            "description": "Optimize queries that process large amounts of data",
+            "arguments": {
+              "spl": "search index=* earliest=-30d@d latest=@d | rex field=_raw \"(?<user>\\w+)\" | stats dc(user) by index",
+              "chat_history": "{\"messages\":[{\"role\":\"developer\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"We were looking at long-running searches over 30 days of data.\"}]}",
+              "additional_context": "{\"time_window\":\"30d\",\"scale\":\"large\",\"fields\":[\"user\"]}"
+            },
+            "expected_use": "Performance optimization for large-scale data analysis"
+          }
+        ],
+        "execution": {
+          "type": "api",
+          "method": "POST",
+          "endpoint": "/servicesNS/-/Splunk_AI_Assistant_Cloud/optimizespl",
+          "headers": {
+            "Content-Type": "application/json",
+            "source-app-id": "mcp"
+          },
+          "body": {
+            "spl": "$spl$",
+            "chat_history": "$chat_history$",
+            "additional_context": "$additional_context$"
+          }
+        },
+        "required_app": "Splunk_AI_Assistant_Cloud"
+      }
+    },
+    {
+      "_key": "splunk_mcp_app_builtin:run_saved_search",
+      "name": "run_saved_search",
+      "title": "run_saved_search",
+      "description": "Execute a Splunk saved search by name and return its results. Saved searches are pre-defined SPL queries stored in Splunk. Use get_knowledge_objects with type='saved_searches' to discover available saved searches and their app context. If the saved search name is unique across apps, the app is resolved automatically. If the same name exists in multiple apps, the alphabetically first app is used; pass the 'app' parameter to target a specific app. If the saved search contains placeholder tokens like $token_name$, pass replacement values as key=value pairs in the args parameter.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "saved_search_name": {
+            "type": "string",
+            "description": "Name of the saved search to execute",
+            "pattern": "^(?=.*\\S)[\\s\\S]{1,500}$",
+            "validation_message": "Saved search name is required, it cannot be blank and is limited to 500 characters.",
+            "_meta": { "formatting": { "needs_quoting": true } }
+          },
+          "args": {
+            "type": "string",
+            "description": "Optional replacement arguments for saved search tokens",
+            "default": "",
+            "pattern": "^(\\s*[A-Za-z_][A-Za-z0-9_.]*\\s*=\\s*\"[^\"\\|\\[\\]`\\n\\r;]*\"(\\s+|$))*$",
+            "validation_message": "args must be space-separated key=\"value\" token assignments only (e.g. host=\"web01\" sourcetype=\"syslog\"). Pipe operators, brackets, backticks, semicolons, and newlines are not allowed in values.",
+            "_meta": { "formatting": { "needs_quoting": false } }
+          },
+          "earliest_time": {
+            "type": "string",
+            "description": "Override the saved search's default start time (e.g., -24h, -7d, 2024-01-01T00:00:00). If omitted, uses the time range configured in the saved search.",
+            "_meta": { "formatting": { "needs_quoting": false } }
+          },
+          "latest_time": {
+            "type": "string",
+            "description": "Override the saved search's default end time (e.g., now, -1h). If omitted, uses the time range configured in the saved search.",
+            "_meta": { "formatting": { "needs_quoting": false } }
+          },
+          "app": {
+            "type": "string",
+            "description": "Splunk app context to run the saved search in (e.g., 'search', 'enterprise_security'). If omitted, the app is auto-resolved; when the name exists in multiple apps the alphabetically first app is used.",
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "validation_message": "App name may only contain letters, numbers, underscores, hyphens, and dots.",
+            "_meta": { "formatting": { "needs_quoting": false } }
+          }
+        },
+        "required": [
+          "saved_search_name"
+        ]
+      },
+      "_meta": {
+        "external_app_id": "splunk",
+        "tags": [
+          "saved_search",
+          "search",
+          "report",
+          "execution"
+        ],
+        "examples": [
+          {
+            "name": "Run a saved search",
+            "description": "Execute a saved search by its name",
+            "arguments": {
+              "saved_search_name": "MySavedSearch"
+            },
+            "expected_use": "Running pre-defined searches and reports"
+          },
+          {
+            "name": "Run a saved search with arguments",
+            "description": "Execute a saved search with replacement token values",
+            "arguments": {
+              "saved_search_name": "Network Traffic Report",
+              "args": "host=\"webserver01\" sourcetype=\"access_combined\""
+            },
+            "expected_use": "Running parameterized saved searches with specific filters"
+          }
+        ],
+        "execution": {
+          "type": "spl",
+          "template": "| savedsearch $saved_search_name$ $args$",
+          "row_limiter": true,
+          "time_range": false
+        },
+        "built_in": true
+      }
+    }
+  ]
+}

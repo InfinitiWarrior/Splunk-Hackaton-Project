@@ -1,0 +1,6 @@
+<nav search_view="search">
+  <view name="dashboard" default='true' />
+  <view name="tools" />
+  <!-- TODO -->
+  <!-- <view name="tool_settings" /> --> 
+</nav>

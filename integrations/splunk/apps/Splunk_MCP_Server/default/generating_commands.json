@@ -1,0 +1,24 @@
+{
+  "generating_commands": [
+    "datamodel",
+    "dbinspect",
+    "eventcount",
+    "from",
+    "inputcsv",
+    "inputlookup",
+    "loadjob",
+    "metadata",
+    "pivot",
+    "rest",
+    "savedsearch",
+    "search",
+    "tstats",
+    "mstats",
+    "mcatalog",
+    "makeresults",
+    "input",
+    "summarize",
+    "collect"
+  ]
+}
+

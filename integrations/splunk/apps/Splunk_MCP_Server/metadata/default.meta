@@ -1,0 +1,4 @@
+# Permissions for KV Store collections
+[default]
+access = read : [ * ], write : [ admin ]
+export = system
