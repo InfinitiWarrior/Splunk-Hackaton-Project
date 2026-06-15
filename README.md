@@ -85,7 +85,7 @@ A Rust/Axum auth proxy sits in front of everything. Argon2id session hashing, IP
 ## Prerequisites
 
 **Hardware (local LLM mode)**
-- NVIDIA GPU with 12GB+ VRAM (Qwen3 14B requires ~9GB at Q4)
+- NVIDIA GPU with 16GB+ VRAM (Qwen3 14B requires ~9GB at Q4)
 - 16GB+ system RAM
 
 **Software**
